@@ -178,6 +178,7 @@ func cmdAdd(args *skel.CmdArgs) error {
 			endpoint = api.NewWorkloadEndpoint()
 			endpoint.Metadata.Name = args.IfName
 			endpoint.Metadata.Node = nodename
+			endpoint.Metadata.ActiveInstanceID = args.ContainerID
 			endpoint.Metadata.Orchestrator = orchestrator
 			endpoint.Metadata.Workload = workload
 			endpoint.Metadata.Labels = labels
@@ -306,6 +307,33 @@ func cmdDel(args *skel.CmdArgs) error {
 		"Node":         nodename,
 	}).Info("Extracted identifiers")
 
+	calicoClient, err := CreateClient(conf)
+	if err != nil {
+		return err
+	}
+
+	ep := api.WorkloadEndpointMetadata{
+		Name:             args.IfName,
+		Node:             nodename,
+		ActiveInstanceID: args.ContainerID,
+		Orchestrator:     orchestrator,
+		Workload:         workload,
+	}
+
+	wep, err := calicoClient.WorkloadEndpoints().Get(ep)
+	if err != nil {
+		if _, ok := err.(errors.ErrorResourceDoesNotExist); ok {
+			logger.WithField("WorkloadEndpoint", ep).Errorf("Error getting workloadendpoint: %v", err)
+			return nil
+		}
+		return err
+	}
+
+	if wep.Metadata.ActiveInstanceID != "" && args.ContainerID != wep.Metadata.ActiveInstanceID {
+		logger.WithField("WorkloadEndpoint", wep).Warning("CNI_ContainerID does not match WorkloadEndpoint ActiveInstanceID so ignoring the DELETE cmd.")
+		return nil
+	}
+
 	// Always try to release the address. Don't deal with any errors till the endpoints are cleaned up.
 	fmt.Fprintf(os.Stderr, "Calico CNI releasing IP address\n")
 	logger.WithFields(log.Fields{"paths": os.Getenv("CNI_PATH"),
@@ -339,16 +367,6 @@ func cmdDel(args *skel.CmdArgs) error {
 		logger.Error(ipamErr)
 	}
 
-	calicoClient, err := CreateClient(conf)
-	if err != nil {
-		return err
-	}
-
-	ep := api.WorkloadEndpointMetadata{
-		Name:         args.IfName,
-		Node:         nodename,
-		Orchestrator: orchestrator,
-		Workload:     workload}
 	if err = calicoClient.WorkloadEndpoints().Delete(ep); err != nil {
 		if _, ok := err.(errors.ErrorResourceDoesNotExist); ok {
 			logger.WithField("endpoint", ep).Info("Endpoint object does not exist, no need to clean up.")

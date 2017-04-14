@@ -239,6 +239,7 @@ func CmdAddK8s(args *skel.CmdArgs, conf utils.NetConf, nodename string, calicoCl
 		endpoint = api.NewWorkloadEndpoint()
 		endpoint.Metadata.Name = args.IfName
 		endpoint.Metadata.Node = nodename
+		endpoint.Metadata.ActiveInstanceID = args.ContainerID
 		endpoint.Metadata.Orchestrator = orchestrator
 		endpoint.Metadata.Workload = workload
 		endpoint.Metadata.Labels = labels

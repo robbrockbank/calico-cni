@@ -1,5 +1,5 @@
-hash: 8004af46ac86678ab2d3788808fd138bc43e5bc67bf54747f5af99bf8b4f9ad3
-updated: 2017-04-10T13:05:24.123332168-07:00
+hash: 0242d36eafd532d426de3c7f4bd6b1072a15a0f20145ea9ed5db0e523080c55e
+updated: 2017-04-17T17:13:47.826216896-07:00
 imports:
 - name: cloud.google.com/go
   version: 3b1ae45394a234c385be014e9a488f2bb6eef821
@@ -154,7 +154,8 @@ imports:
 - name: github.com/projectcalico/go-yaml-wrapper
   version: 598e54215bee41a19677faa4f0c32acd2a87eb56
 - name: github.com/projectcalico/libcalico-go
-  version: 83090c92db7fde08538caea98d766464f94aadd0
+  version: 3da164ec15219e1fa913f50c143fe1ff6780cd51
+  repo: git@github.com:gunjan5/libcalico-go.git
   subpackages:
   - lib/api
   - lib/api/unversioned
@@ -168,12 +169,17 @@ imports:
   - lib/backend/model
   - lib/client
   - lib/errors
+  - lib/hash
   - lib/hwm
   - lib/ipip
   - lib/net
   - lib/numorstring
   - lib/scope
+  - lib/selector
+  - lib/selector/parser
+  - lib/selector/tokenizer
   - lib/testutils
+  - lib/validator
 - name: github.com/PuerkitoBio/purell
   version: 8a290539e2e8629dbc4e6bad948158f790ec31f4
 - name: github.com/PuerkitoBio/urlesc
@@ -243,6 +249,8 @@ imports:
   - internal/remote_api
   - internal/urlfetch
   - urlfetch
+- name: gopkg.in/go-playground/validator.v8
+  version: 5f57d2222ad794d0dffb07e664ea05e2ee07d60c
 - name: gopkg.in/inf.v0
   version: 3887ee99ecf07df5b447e9b00d9c0b2adaa9f3e4
 - name: gopkg.in/tchap/go-patricia.v2

@@ -18,7 +18,6 @@ import (
 	"github.com/projectcalico/libcalico-go/lib/api"
 	"github.com/projectcalico/libcalico-go/lib/client"
 	cnet "github.com/projectcalico/libcalico-go/lib/net"
-	"github.com/projectcalico/libcalico-go/lib/testutils"
 	"github.com/vishvananda/netlink"
 )
 
@@ -34,7 +33,7 @@ var calicoClient *client.Client
 
 func init() {
 	var err error
-	calicoClient, err = testutils.NewClient("")
+	calicoClient, err = client.NewFromEnv()
 	if err != nil {
 		panic(err)
 	}
@@ -52,16 +51,16 @@ var _ = Describe("CalicoCni", func() {
 		Context("using host-local IPAM", func() {
 
 			netconf := fmt.Sprintf(`
-			{
-			  "cniVersion": "%s",
-			  "name": "net1",
-			  "type": "calico",
-			  "etcd_endpoints": "http://%s:2379",
-			  "ipam": {
-			    "type": "host-local",
-			    "subnet": "10.0.0.0/8"
-			  }
-			}`, cniVersion, os.Getenv("ETCD_IP"))
+            {
+              "cniVersion": "%s",
+              "name": "net1",
+              "type": "calico",
+              "etcd_endpoints": "http://%s:2379",
+              "ipam": {
+                "type": "host-local",
+                "subnet": "10.0.0.0/8"
+              }
+            }`, cniVersion, os.Getenv("ETCD_IP"))
 
 			It("successfully networks the namespace", func() {
 				containerID, netnspath, session, contVeth, contAddresses, contRoutes, err := CreateContainer(netconf, "", "")
@@ -178,17 +177,17 @@ var _ = Describe("CalicoCni", func() {
 	Describe("Run Calico CNI plugin", func() {
 		Context("depricate Hostname for nodename", func() {
 			netconf := fmt.Sprintf(`
-			{
-			  "cniVersion": "%s",
-			  "name": "net1",
-			  "type": "calico",
-			  "etcd_endpoints": "http://%s:2379",
-			  "hostname": "namedHostname",
-			  "ipam": {
-			    "type": "host-local",
-			    "subnet": "10.0.0.0/8"
-			  }
-			}`, cniVersion, os.Getenv("ETCD_IP"))
+            {
+              "cniVersion": "%s",
+              "name": "net1",
+              "type": "calico",
+              "etcd_endpoints": "http://%s:2379",
+              "hostname": "namedHostname",
+              "ipam": {
+                "type": "host-local",
+                "subnet": "10.0.0.0/8"
+              }
+            }`, cniVersion, os.Getenv("ETCD_IP"))
 
 			It("has hostname even though deprecated", func() {
 				containerID, netnspath, session, _, _, _, err := CreateContainer(netconf, "", "")
@@ -222,18 +221,18 @@ var _ = Describe("CalicoCni", func() {
 	Describe("Run Calico CNI plugin", func() {
 		Context("depricate Hostname for nodename", func() {
 			netconf := fmt.Sprintf(`
-			{
-			  "cniVersion": "%s",
-			  "name": "net1",
-			  "type": "calico",
-			  "etcd_endpoints": "http://%s:2379",
-			  "hostname": "namedHostname",
-			  "nodename": "namedNodename",
-			  "ipam": {
-			    "type": "host-local",
-			    "subnet": "10.0.0.0/8"
-			  }
-			}`, cniVersion, os.Getenv("ETCD_IP"))
+            {
+              "cniVersion": "%s",
+              "name": "net1",
+              "type": "calico",
+              "etcd_endpoints": "http://%s:2379",
+              "hostname": "namedHostname",
+              "nodename": "namedNodename",
+              "ipam": {
+                "type": "host-local",
+                "subnet": "10.0.0.0/8"
+              }
+            }`, cniVersion, os.Getenv("ETCD_IP"))
 
 			It("nodename takes precedence over hostname", func() {
 				containerID, netnspath, session, _, _, _, err := CreateContainer(netconf, "", "")
@@ -266,16 +265,16 @@ var _ = Describe("CalicoCni", func() {
 
 	Describe("DEL", func() {
 		netconf := fmt.Sprintf(`
-		{
-			"cniVersion": "%s",
-			"name": "net1",
-			"type": "calico",
-			"etcd_endpoints": "http://%s:2379",
-			"ipam": {
-				"type": "host-local",
-				"subnet": "10.0.0.0/8"
-			}
-		}`, cniVersion, os.Getenv("ETCD_IP"))
+        {
+            "cniVersion": "%s",
+            "name": "net1",
+            "type": "calico",
+            "etcd_endpoints": "http://%s:2379",
+            "ipam": {
+                "type": "host-local",
+                "subnet": "10.0.0.0/8"
+            }
+        }`, cniVersion, os.Getenv("ETCD_IP"))
 
 		Context("when it was never called for SetUP", func() {
 			Context("and a namespace does exist", func() {
@@ -294,6 +293,157 @@ var _ = Describe("CalicoCni", func() {
 					Expect(err).ShouldNot(HaveOccurred())
 					Expect(exitCode).To(Equal(0))
 				})
+			})
+		})
+	})
+
+	Describe("ADD a continaer with ContainerID and DEL it with the same ContainerID", func() {
+		Context("Use the same CNI_ContainerID to ADD and DEL the container", func() {
+			netconf := fmt.Sprintf(`
+            {
+              "cniVersion": "%s",
+              "name": "net1",
+              "type": "calico",
+              "etcd_endpoints": "http://%s:2379",
+              "ipam": {
+                "type": "host-local",
+                "subnet": "10.0.0.0/8"
+              }
+            }`, cniVersion, os.Getenv("ETCD_IP"))
+
+			It("should succesfully ADD and DEL the container with CNI_ContainerID", func() {
+				cniContainerID := "container-id-001"
+
+				// ADD the container with passing a CNI_ContainerID.
+				workloadID, netnspath, session, _, _, _, err := CreateContainerWithId(netconf, "", "", cniContainerID)
+				Expect(err).ShouldNot(HaveOccurred())
+				Eventually(session).Should(gexec.Exit())
+
+				result, err := GetResultForCurrent(session, cniVersion)
+				if err != nil {
+					log.Fatalf("Error getting result from the session: %v\n", err)
+				}
+
+				log.Printf("Unmarshaled result: %v\n", result)
+
+				// The endpoint is created in the backend datastore.
+				endpoints, err := calicoClient.WorkloadEndpoints().List(api.WorkloadEndpointMetadata{})
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(endpoints.Items).Should(HaveLen(1))
+				Expect(endpoints.Items[0].Metadata).Should(Equal(api.WorkloadEndpointMetadata{
+					Node:             hostname,
+					Name:             "eth0",
+					Workload:         workloadID,
+					ActiveInstanceID: cniContainerID,
+					Orchestrator:     "cni",
+				}))
+
+				// Delete the container with the same CNI_ContainerID.
+				exitCode, err := DeleteContainerWithId(netconf, netnspath, "", cniContainerID)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(exitCode).Should(Equal(0))
+
+				// The endpoint should not exist in the backend datastore.
+				endpoints, err = calicoClient.WorkloadEndpoints().List(api.WorkloadEndpointMetadata{})
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(endpoints.Items).Should(HaveLen(0))
+			})
+		})
+	})
+
+	Describe("ADD a continaer with a ContainerID and DEL it with the same ContainerID then ADD a new container with a different ContainerID, and send a DEL for the old ContainerID", func() {
+		Context("Use different CNI_ContainerIDs to ADD and DEL the container", func() {
+			netconf := fmt.Sprintf(`
+            {
+              "cniVersion": "%s",
+              "name": "net1",
+              "type": "calico",
+              "etcd_endpoints": "http://%s:2379",
+              "ipam": {
+                "type": "host-local",
+                "subnet": "10.0.0.0/8"
+              }
+            }`, cniVersion, os.Getenv("ETCD_IP"))
+
+			It("should succesfully ADD and DEL the container with CNI_ContainerID", func() {
+				cniContainerIDX := "container-id-00X"
+				cniContainerIDY := "container-id-00Y"
+
+				// ADD the container with passing a CNI_ContainerID "X".
+				workloadID, netnspath, session, _, _, _, err := CreateContainerWithId(netconf, "", "", cniContainerIDX)
+				Expect(err).ShouldNot(HaveOccurred())
+				Eventually(session).Should(gexec.Exit())
+
+				result, err := GetResultForCurrent(session, cniVersion)
+				if err != nil {
+					log.Fatalf("Error getting result from the session: %v\n", err)
+				}
+
+				log.Printf("Unmarshaled result: %v\n", result)
+
+				// Assert that the endpoint is created in the backend datastore with ContainerID "X".
+				endpoints, err := calicoClient.WorkloadEndpoints().List(api.WorkloadEndpointMetadata{})
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(endpoints.Items).Should(HaveLen(1))
+				Expect(endpoints.Items[0].Metadata).Should(Equal(api.WorkloadEndpointMetadata{
+					Node:             hostname,
+					Name:             "eth0",
+					Workload:         workloadID,
+					ActiveInstanceID: cniContainerIDX,
+					Orchestrator:     "cni",
+				}))
+
+				// Delete the container with the CNI_ContainerID "X".
+				exitCode, err := DeleteContainerWithId(netconf, netnspath, "", cniContainerIDX)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(exitCode).Should(Equal(0))
+
+				// The endpoint for ContainerID "X" should not exist in the backend datastore.
+				endpoints, err = calicoClient.WorkloadEndpoints().List(api.WorkloadEndpointMetadata{})
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(endpoints.Items).Should(HaveLen(0))
+
+				// ADD a new container with passing a CNI_ContainerID "Y".
+				workloadID, netnspath, session, _, _, _, err = CreateContainerWithId(netconf, "", "", cniContainerIDY)
+				Expect(err).ShouldNot(HaveOccurred())
+				Eventually(session).Should(gexec.Exit())
+
+				result, err = GetResultForCurrent(session, cniVersion)
+				if err != nil {
+					log.Fatalf("Error getting result from the session: %v\n", err)
+				}
+
+				log.Printf("Unmarshaled result: %v\n", result)
+
+				// Assert that the endpoint is created in the backend datastore with ContainerID "Y".
+				endpoints, err = calicoClient.WorkloadEndpoints().List(api.WorkloadEndpointMetadata{})
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(endpoints.Items).Should(HaveLen(1))
+				Expect(endpoints.Items[0].Metadata).Should(Equal(api.WorkloadEndpointMetadata{
+					Node:             hostname,
+					Name:             "eth0",
+					Workload:         workloadID,
+					ActiveInstanceID: cniContainerIDY,
+					Orchestrator:     "cni",
+				}))
+
+				// Delete the container with the CNI_ContainerID "X" again.
+				exitCode, err = DeleteContainerWithId(netconf, netnspath, "", cniContainerIDX)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(exitCode).Should(Equal(0))
+
+				// Assert that the endpoint with ContainerID "Y" is still in the datastore.
+				endpoints, err = calicoClient.WorkloadEndpoints().List(api.WorkloadEndpointMetadata{})
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(endpoints.Items).Should(HaveLen(1))
+				Expect(endpoints.Items[0].Metadata).Should(Equal(api.WorkloadEndpointMetadata{
+					Node:             hostname,
+					Name:             "eth0",
+					Workload:         workloadID,
+					ActiveInstanceID: cniContainerIDY,
+					Orchestrator:     "cni",
+				}))
+
 			})
 		})
 	})
