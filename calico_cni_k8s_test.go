@@ -116,11 +116,12 @@ var _ = Describe("CalicoCni", func() {
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(endpoints.Items).Should(HaveLen(1))
 				Expect(endpoints.Items[0].Metadata).Should(Equal(api.WorkloadEndpointMetadata{
-					Node:         hostname,
-					Name:         "eth0",
-					Workload:     fmt.Sprintf("test.%s", name),
-					Orchestrator: "k8s",
-					Labels:       map[string]string{"calico/k8s_ns": "test"},
+					Node:             hostname,
+					Name:             "eth0",
+					Workload:         fmt.Sprintf("test.%s", name),
+					ActiveInstanceID: containerID,
+					Orchestrator:     "k8s",
+					Labels:           map[string]string{"calico/k8s_ns": "test"},
 				}))
 				Expect(endpoints.Items[0].Spec).Should(Equal(api.WorkloadEndpointSpec{
 					InterfaceName: interfaceName,
@@ -313,7 +314,7 @@ var _ = Describe("CalicoCni", func() {
 
 					logger.Infof("Created POD object: %v", pod)
 
-					_, _, _, contVeth, contAddresses, _, err := CreateContainer(netconfCalicoIPAM, name, "")
+					containerID, _, _, contVeth, contAddresses, _, err := CreateContainer(netconfCalicoIPAM, name, "")
 					Expect(err).NotTo(HaveOccurred())
 					mac := contVeth.Attrs().HardwareAddr
 
@@ -329,11 +330,12 @@ var _ = Describe("CalicoCni", func() {
 					Expect(err).ShouldNot(HaveOccurred())
 					Expect(endpoints.Items).Should(HaveLen(1))
 					Expect(endpoints.Items[0].Metadata).Should(Equal(api.WorkloadEndpointMetadata{
-						Node:         hostname,
-						Name:         "eth0",
-						Workload:     fmt.Sprintf("test.%s", name),
-						Orchestrator: "k8s",
-						Labels:       map[string]string{"calico/k8s_ns": "test"},
+						Node:             hostname,
+						Name:             "eth0",
+						Workload:         fmt.Sprintf("test.%s", name),
+						ActiveInstanceID: containerID,
+						Orchestrator:     "k8s",
+						Labels:           map[string]string{"calico/k8s_ns": "test"},
 					}))
 					Expect(endpoints.Items[0].Spec).Should(Equal(api.WorkloadEndpointSpec{
 						InterfaceName: interfaceName,
@@ -401,7 +403,7 @@ var _ = Describe("CalicoCni", func() {
 
 					logger.Infof("Created POD object: %v", pod)
 
-					_, _, _, contVeth, contAddresses, _, err := CreateContainer(netconfCalicoIPAM, name, "")
+					containerID, _, _, contVeth, contAddresses, _, err := CreateContainer(netconfCalicoIPAM, name, "")
 					Expect(err).NotTo(HaveOccurred())
 					mac := contVeth.Attrs().HardwareAddr
 
@@ -417,11 +419,12 @@ var _ = Describe("CalicoCni", func() {
 					Expect(err).ShouldNot(HaveOccurred())
 					Expect(endpoints.Items).Should(HaveLen(1))
 					Expect(endpoints.Items[0].Metadata).Should(Equal(api.WorkloadEndpointMetadata{
-						Node:         hostname,
-						Name:         "eth0",
-						Workload:     fmt.Sprintf("test.%s", name),
-						Orchestrator: "k8s",
-						Labels:       map[string]string{"calico/k8s_ns": "test"},
+						Node:             hostname,
+						Name:             "eth0",
+						Workload:         fmt.Sprintf("test.%s", name),
+						ActiveInstanceID: containerID,
+						Orchestrator:     "k8s",
+						Labels:           map[string]string{"calico/k8s_ns": "test"},
 					}))
 					Expect(endpoints.Items[0].Spec).Should(Equal(api.WorkloadEndpointSpec{
 						InterfaceName: interfaceName,
@@ -487,7 +490,7 @@ var _ = Describe("CalicoCni", func() {
 
 					logger.Infof("Created POD object: %v", pod)
 
-					_, _, _, contVeth, contAddresses, _, err := CreateContainer(netconfCalicoIPAM, name, "")
+					containerID, _, _, contVeth, contAddresses, _, err := CreateContainer(netconfCalicoIPAM, name, "")
 					Expect(err).NotTo(HaveOccurred())
 					mac := contVeth.Attrs().HardwareAddr
 
@@ -503,11 +506,12 @@ var _ = Describe("CalicoCni", func() {
 					Expect(err).ShouldNot(HaveOccurred())
 					Expect(endpoints.Items).Should(HaveLen(1))
 					Expect(endpoints.Items[0].Metadata).Should(Equal(api.WorkloadEndpointMetadata{
-						Node:         hostname,
-						Name:         "eth0",
-						Workload:     fmt.Sprintf("test.%s", name),
-						Orchestrator: "k8s",
-						Labels:       map[string]string{"calico/k8s_ns": "test"},
+						Node:             hostname,
+						Name:             "eth0",
+						Workload:         fmt.Sprintf("test.%s", name),
+						ActiveInstanceID: containerID,
+						Orchestrator:     "k8s",
+						Labels:           map[string]string{"calico/k8s_ns": "test"},
 					}))
 					Expect(endpoints.Items[0].Spec).Should(Equal(api.WorkloadEndpointSpec{
 						InterfaceName: interfaceName,

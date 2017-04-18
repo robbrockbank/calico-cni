@@ -92,10 +92,11 @@ var _ = Describe("CalicoCni", func() {
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(endpoints.Items).Should(HaveLen(1))
 				Expect(endpoints.Items[0].Metadata).Should(Equal(api.WorkloadEndpointMetadata{
-					Node:         hostname,
-					Name:         "eth0",
-					Workload:     containerID,
-					Orchestrator: "cni",
+					Node:             hostname,
+					Name:             "eth0",
+					Workload:         containerID,
+					ActiveInstanceID: containerID,
+					Orchestrator:     "cni",
 				}))
 
 				Expect(endpoints.Items[0].Spec).Should(Equal(api.WorkloadEndpointSpec{
@@ -206,10 +207,11 @@ var _ = Describe("CalicoCni", func() {
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(endpoints.Items).Should(HaveLen(1))
 				Expect(endpoints.Items[0].Metadata).Should(Equal(api.WorkloadEndpointMetadata{
-					Node:         "namedHostname",
-					Name:         "eth0",
-					Workload:     containerID,
-					Orchestrator: "cni",
+					Node:             "namedHostname",
+					Name:             "eth0",
+					Workload:         containerID,
+					ActiveInstanceID: containerID,
+					Orchestrator:     "cni",
 				}))
 
 				_, err = DeleteContainer(netconf, netnspath, "")
@@ -251,10 +253,11 @@ var _ = Describe("CalicoCni", func() {
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(endpoints.Items).Should(HaveLen(1))
 				Expect(endpoints.Items[0].Metadata).Should(Equal(api.WorkloadEndpointMetadata{
-					Node:         "namedNodename",
-					Name:         "eth0",
-					Workload:     containerID,
-					Orchestrator: "cni",
+					Node:             "namedNodename",
+					Name:             "eth0",
+					Workload:         containerID,
+					ActiveInstanceID: containerID,
+					Orchestrator:     "cni",
 				}))
 
 				_, err = DeleteContainer(netconf, netnspath, "")
