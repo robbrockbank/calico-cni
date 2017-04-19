@@ -91,6 +91,9 @@ var _ = Describe("CalicoCni", func() {
 				endpoints, err := calicoClient.WorkloadEndpoints().List(api.WorkloadEndpointMetadata{})
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(endpoints.Items).Should(HaveLen(1))
+
+				// Set the Revision to nil since we can't assert it's exact value.
+				endpoints.Items[0].Metadata.Revision = nil
 				Expect(endpoints.Items[0].Metadata).Should(Equal(api.WorkloadEndpointMetadata{
 					Node:             hostname,
 					Name:             "eth0",
@@ -206,6 +209,9 @@ var _ = Describe("CalicoCni", func() {
 				endpoints, err := calicoClient.WorkloadEndpoints().List(api.WorkloadEndpointMetadata{})
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(endpoints.Items).Should(HaveLen(1))
+
+				// Set the Revision to nil since we can't assert it's exact value.
+				endpoints.Items[0].Metadata.Revision = nil
 				Expect(endpoints.Items[0].Metadata).Should(Equal(api.WorkloadEndpointMetadata{
 					Node:             "namedHostname",
 					Name:             "eth0",
@@ -252,6 +258,9 @@ var _ = Describe("CalicoCni", func() {
 				endpoints, err := calicoClient.WorkloadEndpoints().List(api.WorkloadEndpointMetadata{})
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(endpoints.Items).Should(HaveLen(1))
+
+				// Set the Revision to nil since we can't assert it's exact value.
+				endpoints.Items[0].Metadata.Revision = nil
 				Expect(endpoints.Items[0].Metadata).Should(Equal(api.WorkloadEndpointMetadata{
 					Node:             "namedNodename",
 					Name:             "eth0",
@@ -333,6 +342,9 @@ var _ = Describe("CalicoCni", func() {
 				endpoints, err := calicoClient.WorkloadEndpoints().List(api.WorkloadEndpointMetadata{})
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(endpoints.Items).Should(HaveLen(1))
+
+				// Set the Revision to nil since we can't assert it's exact value.
+				endpoints.Items[0].Metadata.Revision = nil
 				Expect(endpoints.Items[0].Metadata).Should(Equal(api.WorkloadEndpointMetadata{
 					Node:             hostname,
 					Name:             "eth0",
@@ -389,6 +401,9 @@ var _ = Describe("CalicoCni", func() {
 				endpoints, err := calicoClient.WorkloadEndpoints().List(api.WorkloadEndpointMetadata{})
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(endpoints.Items).Should(HaveLen(1))
+
+				// Set the Revision to nil since we can't assert it's exact value.
+				endpoints.Items[0].Metadata.Revision = nil
 				Expect(endpoints.Items[0].Metadata).Should(Equal(api.WorkloadEndpointMetadata{
 					Node:             hostname,
 					Name:             "eth0",
@@ -423,6 +438,9 @@ var _ = Describe("CalicoCni", func() {
 				endpoints, err = calicoClient.WorkloadEndpoints().List(api.WorkloadEndpointMetadata{})
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(endpoints.Items).Should(HaveLen(1))
+
+				// Set the Revision to nil since we can't assert it's exact value.
+				endpoints.Items[0].Metadata.Revision = nil
 				Expect(endpoints.Items[0].Metadata).Should(Equal(api.WorkloadEndpointMetadata{
 					Node:             hostname,
 					Name:             "eth0",
@@ -440,6 +458,9 @@ var _ = Describe("CalicoCni", func() {
 				endpoints, err = calicoClient.WorkloadEndpoints().List(api.WorkloadEndpointMetadata{})
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(endpoints.Items).Should(HaveLen(1))
+
+				// Set the Revision to nil since we can't assert it's exact value.
+				endpoints.Items[0].Metadata.Revision = nil
 				Expect(endpoints.Items[0].Metadata).Should(Equal(api.WorkloadEndpointMetadata{
 					Node:             hostname,
 					Name:             "eth0",
