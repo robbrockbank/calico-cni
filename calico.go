@@ -178,7 +178,6 @@ func cmdAdd(args *skel.CmdArgs) error {
 			endpoint = api.NewWorkloadEndpoint()
 			endpoint.Metadata.Name = args.IfName
 			endpoint.Metadata.Node = nodename
-			endpoint.Metadata.ActiveInstanceID = args.ContainerID
 			endpoint.Metadata.Orchestrator = orchestrator
 			endpoint.Metadata.Workload = workload
 			endpoint.Metadata.Labels = labels
