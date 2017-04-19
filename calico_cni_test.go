@@ -300,7 +300,7 @@ var _ = Describe("CalicoCni", func() {
 		})
 	})
 
-	Describe("ADD a continaer with ContainerID and DEL it with the same ContainerID", func() {
+	Describe("ADD a continer with ContainerID and DEL it with the same ContainerID", func() {
 		Context("Use the same CNI_ContainerID to ADD and DEL the container", func() {
 			netconf := fmt.Sprintf(`
             {
@@ -354,7 +354,8 @@ var _ = Describe("CalicoCni", func() {
 		})
 	})
 
-	Describe("ADD a continaer with a ContainerID and DEL it with the same ContainerID then ADD a new container with a different ContainerID, and send a DEL for the old ContainerID", func() {
+	// See: https://github.com/kubernetes/kubernetes/issues/44100. This could happen with other orchestrators as well.
+	Describe("ADD a continer with a ContainerID and DEL it with the same ContainerID then ADD a new container with a different ContainerID, and send a DEL for the old ContainerID", func() {
 		Context("Use different CNI_ContainerIDs to ADD and DEL the container", func() {
 			netconf := fmt.Sprintf(`
             {

@@ -313,11 +313,10 @@ func cmdDel(args *skel.CmdArgs) error {
 	}
 
 	ep := api.WorkloadEndpointMetadata{
-		Name:             args.IfName,
-		Node:             nodename,
-		ActiveInstanceID: args.ContainerID,
-		Orchestrator:     orchestrator,
-		Workload:         workload,
+		Name:         args.IfName,
+		Node:         nodename,
+		Orchestrator: orchestrator,
+		Workload:     workload,
 	}
 
 	wep, err := calicoClient.WorkloadEndpoints().Get(ep)
@@ -367,10 +366,14 @@ func cmdDel(args *skel.CmdArgs) error {
 		logger.Error(ipamErr)
 	}
 
-	if err = calicoClient.WorkloadEndpoints().Delete(ep); err != nil {
-		if _, ok := err.(errors.ErrorResourceDoesNotExist); ok {
-			logger.WithField("endpoint", ep).Info("Endpoint object does not exist, no need to clean up.")
-		} else {
+	if err = calicoClient.WorkloadEndpoints().Delete(wep.Metadata); err != nil {
+		switch err := err.(type) {
+		case errors.ErrorResourceDoesNotExist:
+			logger.WithField("endpoint", wep).Info("Endpoint object does not exist, no need to clean up.")
+		case errors.ErrorResourceUpdateConflict:
+			logger.WithField("endpoint", wep).Warning("Error deleting endpoint: endpoint was modified before it could be deleted.")
+			return err
+		default:
 			return err
 		}
 	}
