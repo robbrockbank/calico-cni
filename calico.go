@@ -322,7 +322,7 @@ func cmdDel(args *skel.CmdArgs) error {
 
 	// Handle k8s specific bits of handling the DEL.
 	if orchestrator == "k8s" {
-		wep, err = k8s.CmdDelK8s(calicoClient, ep, args, logger)
+		wep, err := k8s.CmdDelK8s(calicoClient, ep, args, logger)
 		if err != nil {
 			return err
 		}
@@ -363,7 +363,7 @@ func cmdDel(args *skel.CmdArgs) error {
 }
 
 // cleanUpNamespace deletes the devices in the network namespace.
-func cleanUpNamespace(args *skelCmdArgs, logger *log.Entry) error {
+func cleanUpNamespace(args *skel.CmdArgs, logger *log.Entry) error {
 	// Only try to delete the device if a namespace was passed in.
 	if args.Netns != "" {
 		logger.Debug("Checking namespace & device exist.")
@@ -374,8 +374,8 @@ func cleanUpNamespace(args *skelCmdArgs, logger *log.Entry) error {
 
 		if devErr == nil {
 			fmt.Fprintf(os.Stderr, "Calico CNI deleting device in netns %s\n", args.Netns)
-			err = ns.WithNetNSPath(args.Netns, func(_ ns.NetNS) error {
-				_, err = ip.DelLinkByNameAddr(args.IfName, netlink.FAMILY_V4)
+			err := ns.WithNetNSPath(args.Netns, func(_ ns.NetNS) error {
+				_, err := ip.DelLinkByNameAddr(args.IfName, netlink.FAMILY_V4)
 				return err
 			})
 

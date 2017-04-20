@@ -326,7 +326,7 @@ func CmdDelK8s(c *calicoclient.Client, ep api.WorkloadEndpointMetadata, args *sk
 			return nil, nil
 		}
 
-		return wep.Metadata, nil
+		return &wep.Metadata, nil
 	}
 
 	return nil, nil
