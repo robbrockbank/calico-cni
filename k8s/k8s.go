@@ -25,7 +25,6 @@ import (
 	"github.com/containernetworking/cni/pkg/skel"
 	"github.com/containernetworking/cni/pkg/types"
 	"github.com/containernetworking/cni/pkg/types/current"
-	"github.com/coreos/etcd/client"
 	"github.com/projectcalico/cni-plugin/utils"
 	"github.com/projectcalico/libcalico-go/lib/api"
 	k8sbackend "github.com/projectcalico/libcalico-go/lib/backend/k8s"
@@ -297,13 +296,13 @@ func CmdAddK8s(args *skel.CmdArgs, conf utils.NetConf, nodename string, calicoCl
 	return result, nil
 }
 
-func CmdDelK8s(calicoClient *client.Client, ep api.WorkloadEndpointMetadata, args *skel.CmdArgs, logger *log.Entry) (*api.WorkloadEndpointMetadata, error) {
+func CmdDelK8s(c *calicoclient.Client, ep api.WorkloadEndpointMetadata, args *skel.CmdArgs, logger *log.Entry) (*api.WorkloadEndpointMetadata, error) {
 
 	// The following logic only applies to kubernetes since it sends multiple DELs for the same endpoint.
 	// We store CNI_CONTAINERID as ActiveInstanceID in WEP Metadata for k8s,
 	// so we need to make sure we check if ContainerID and ActiveInstanceID are the same before deleting the pod.
 
-	wep, err := calicoClient.WorkloadEndpoints().Get(ep)
+	wep, err := c.WorkloadEndpoints().Get(ep)
 	if err != nil {
 		if _, ok := err.(cerrors.ErrorResourceDoesNotExist); ok {
 			// We can talk to the datastore but WEP doesn't exist in there,
