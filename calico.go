@@ -326,10 +326,9 @@ func cmdDel(args *skel.CmdArgs) error {
 		if err != nil {
 			if err == k8s.ContainerIDMismatchErr {
 				// CNI_ContainerID does not match WorkloadEndpoint ActiveInstanceID so ignoring the DELETE cmd.
-				// This gets logged in k8s.CmdDelK8s so - no-op
-			} else {
-				return err
+				return nil
 			}
+			return err
 		}
 
 		if wep != nil {
