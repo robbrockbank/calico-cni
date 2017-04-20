@@ -296,11 +296,14 @@ func CmdAddK8s(args *skel.CmdArgs, conf utils.NetConf, nodename string, calicoCl
 	return result, nil
 }
 
-func CmdDelK8s(c *calicoclient.Client, ep api.WorkloadEndpointMetadata, args *skel.CmdArgs, logger *log.Entry) (*api.WorkloadEndpointMetadata, error) {
+// ContainerIDMismatchErr is for when ContainerID does not match ActiveInstanceID during Deletion process.
+var ContainerIDMismatchErr = errors.New("ContainerID does not match ActiveInstanceID")
 
-	// The following logic only applies to kubernetes since it sends multiple DELs for the same endpoint.
-	// We store CNI_CONTAINERID as ActiveInstanceID in WEP Metadata for k8s,
-	// so we need to make sure we check if ContainerID and ActiveInstanceID are the same before deleting the pod.
+// CmdDelK8s performs some special checks for the "DEL" operation on a kubernetes pod.
+// The following logic only applies to kubernetes since it sends multiple DELs for the same endpoint.
+// We store CNI_CONTAINERID as ActiveInstanceID in WEP Metadata for k8s,
+// so we need to make sure we check if ContainerID and ActiveInstanceID are the same before deleting the pod.
+func CmdDelK8s(c *calicoclient.Client, ep api.WorkloadEndpointMetadata, args *skel.CmdArgs, logger *log.Entry) (*api.WorkloadEndpointMetadata, error) {
 
 	wep, err := c.WorkloadEndpoints().Get(ep)
 	if err != nil {
@@ -323,7 +326,7 @@ func CmdDelK8s(c *calicoclient.Client, ep api.WorkloadEndpointMetadata, args *sk
 		// passed by the orchestrator to make sure they are the same, return without deleting if they aren't.
 		if wep.Metadata.ActiveInstanceID != "" && args.ContainerID != wep.Metadata.ActiveInstanceID {
 			logger.WithField("WorkloadEndpoint", wep).Warning("CNI_ContainerID does not match WorkloadEndpoint ActiveInstanceID so ignoring the DELETE cmd.")
-			return nil, nil
+			return nil, ContainerIDMismatchErr
 		}
 
 		return &wep.Metadata, nil
