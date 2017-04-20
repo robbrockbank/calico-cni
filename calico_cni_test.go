@@ -98,7 +98,7 @@ var _ = Describe("CalicoCni", func() {
 					Node:             hostname,
 					Name:             "eth0",
 					Workload:         containerID,
-					ActiveInstanceID: containerID,
+					ActiveInstanceID: "",
 					Orchestrator:     "cni",
 				}))
 
@@ -216,7 +216,7 @@ var _ = Describe("CalicoCni", func() {
 					Node:             "namedHostname",
 					Name:             "eth0",
 					Workload:         containerID,
-					ActiveInstanceID: containerID,
+					ActiveInstanceID: "",
 					Orchestrator:     "cni",
 				}))
 
@@ -265,7 +265,7 @@ var _ = Describe("CalicoCni", func() {
 					Node:             "namedNodename",
 					Name:             "eth0",
 					Workload:         containerID,
-					ActiveInstanceID: containerID,
+					ActiveInstanceID: "",
 					Orchestrator:     "cni",
 				}))
 
@@ -349,7 +349,7 @@ var _ = Describe("CalicoCni", func() {
 					Node:             hostname,
 					Name:             "eth0",
 					Workload:         workloadID,
-					ActiveInstanceID: cniContainerID,
+					ActiveInstanceID: "",
 					Orchestrator:     "cni",
 				}))
 
@@ -408,7 +408,7 @@ var _ = Describe("CalicoCni", func() {
 					Node:             hostname,
 					Name:             "eth0",
 					Workload:         workloadID,
-					ActiveInstanceID: cniContainerIDX,
+					ActiveInstanceID: "",
 					Orchestrator:     "cni",
 				}))
 
@@ -445,7 +445,7 @@ var _ = Describe("CalicoCni", func() {
 					Node:             hostname,
 					Name:             "eth0",
 					Workload:         workloadID,
-					ActiveInstanceID: cniContainerIDY,
+					ActiveInstanceID: "",
 					Orchestrator:     "cni",
 				}))
 
@@ -465,7 +465,7 @@ var _ = Describe("CalicoCni", func() {
 					Node:             hostname,
 					Name:             "eth0",
 					Workload:         workloadID,
-					ActiveInstanceID: cniContainerIDY,
+					ActiveInstanceID: "",
 					Orchestrator:     "cni",
 				}))
 
