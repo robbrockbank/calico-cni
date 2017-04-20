@@ -312,69 +312,36 @@ func cmdDel(args *skel.CmdArgs) error {
 	}
 
 	ep := api.WorkloadEndpointMetadata{
-		Name:             args.IfName,
-		Node:             nodename,
-		Orchestrator:     orchestrator,
-		ActiveInstanceID: "",
-		Workload:         workload,
+		Name:         args.IfName,
+		Node:         nodename,
+		Orchestrator: orchestrator,
+		Workload:     workload,
 	}
 
-	var wep *api.WorkloadEndpoint
-	var endpoint api.WorkloadEndpointMetadata
+	endpoint := &ep
 
-	// The following logic only applies to kubernetes since it sends multiple DELs for the same endpoint.
-	// No need to get WEP from the datastore and compare it's ActiveInstanceID with ContainerID for non-k8s orchestrators
+	// Handle k8s specific bits of handling the DEL.
 	if orchestrator == "k8s" {
-		wep, err = calicoClient.WorkloadEndpoints().Get(ep)
+		wep, err = k8s.CmdDelK8s(calicoClient, ep, args, logger)
 		if err != nil {
-			if _, ok := err.(errors.ErrorResourceDoesNotExist); ok {
-
-				// We can talk to the datastore but WEP doesn't exist in there,
-				// but we still want to go ahead with the clean up. So, log a warning and clean up.
-				logger.WithField("WorkloadEndpoint", ep).Warningf("Error getting workloadendpoint: %v", err)
-			} else {
-				// Could not connect to datastore (connection refused, unauthorized, etc.)
-				// so we have no way of knowing/checking ActiveInstanceID. To protect the endpoint
-				// from false DEL, we return the error without deleting/cleaning up.
-				return err
-			}
+			return err
 		}
 
-		// Store WEP Metadata in endpoint only if it is not nil to avoid nil pointer dereference
-		// in some of the following operations when WEP doesn't exist in the datastore.
 		if wep != nil {
-			endpoint = wep.Metadata
-		} else {
-			endpoint = ep
+			endpoint = wep
 		}
-
-		// Check if ActiveInstanceID is populated (it will be an empty string "" if it was populated
-		// before this field was added to the API), and if it is there then compare it with ContainerID
-		// passed by the orchestrator to make sure they are the same, return without deleting if they aren't.
-		if endpoint.ActiveInstanceID != "" && args.ContainerID != endpoint.ActiveInstanceID {
-			logger.WithField("WorkloadEndpoint", wep).Warning("CNI_ContainerID does not match WorkloadEndpoint ActiveInstanceID so ignoring the DELETE cmd.")
-			return nil
-		}
-	}
-
-	// Store WEP Metadata in endpoint only if it is not nil to avoid nil pointer dereference
-	// in some of the following operations when WEP doesn't exist in the datastore.
-	if wep != nil {
-		endpoint = wep.Metadata
-	} else {
-		endpoint = ep
 	}
 
 	// Delete the WorkloadEndpoint object from the datastore.
-	if err = calicoClient.WorkloadEndpoints().Delete(endpoint); err != nil {
+	if err = calicoClient.WorkloadEndpoints().Delete(*endpoint); err != nil {
 		switch err := err.(type) {
 		case errors.ErrorResourceDoesNotExist:
 			// Log and proceed with the clean up if WEP doesn't exist.
-			logger.WithField("endpoint", endpoint).Info("Endpoint object does not exist, no need to clean up.")
+			logger.WithField("endpoint", *endpoint).Info("Endpoint object does not exist, no need to clean up.")
 		case errors.ErrorResourceUpdateConflict:
 			// This case means the WEP object was modified between the time we did the Get and now,
 			// so it's not a safe Compare-and-Delete operation, so log and abbort with the error.
-			logger.WithField("endpoint", endpoint).Warning("Error deleting endpoint: endpoint was modified before it could be deleted.")
+			logger.WithField("endpoint", *endpoint).Warning("Error deleting endpoint: endpoint was modified before it could be deleted.")
 			return fmt.Errorf("Error deleting endpoint: endpoint was modified before it could be deleted: %v", err)
 		default:
 			return err
@@ -384,6 +351,19 @@ func cmdDel(args *skel.CmdArgs) error {
 	// Release the IP address by calling the configured IPAM plugin.
 	ipamErr := cleanUpIPAM(conf, args, logger)
 
+	// Clean up namespace by removing the interfaces.
+	err = cleanUpNamespace(args, logger)
+	if err != nil {
+		return err
+	}
+
+	// Return the IPAM error if there was one. The IPAM error will be lost if there was also an error in cleaning up
+	// the device or endpoint, but crucially, the user will know the overall operation failed.
+	return ipamErr
+}
+
+// cleanUpNamespace deletes the devices in the network namespace.
+func cleanUpNamespace(args *skelCmdArgs, logger *log.Entry) error {
 	// Only try to delete the device if a namespace was passed in.
 	if args.Netns != "" {
 		logger.Debug("Checking namespace & device exist.")
@@ -407,9 +387,7 @@ func cmdDel(args *skel.CmdArgs) error {
 		}
 	}
 
-	// Return the IPAM error if there was one. The IPAM error will be lost if there was also an error in cleaning up
-	// the device or endpoint, but crucially, the user will know the overall operation failed.
-	return ipamErr
+	return nil
 }
 
 // cleanUpIPAM calls IPAM plugin to release the IP address.

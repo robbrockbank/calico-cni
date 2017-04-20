@@ -620,8 +620,8 @@ var _ = Describe("CalicoCni", func() {
 				})
 			})
 
-			// This specific test case is for an issue where k8s would send extra DELs being "aggrassive". See: https://github.com/kubernetes/kubernetes/issues/44100
-			Context("ADD a continer with a ContainerID and DEL it with the same ContainerID then ADD a new container with a different ContainerID, and send a DEL for the old ContainerID", func() {
+			// This specific test case is for an issue where k8s would send extra DELs being "aggressive". See: https://github.com/kubernetes/kubernetes/issues/44100
+			Context("ADD a container with a ContainerID and DEL it with the same ContainerID then ADD a new container with a different ContainerID, and send a DEL for the old ContainerID", func() {
 				It("Use different CNI_ContainerIDs to ADD and DEL the container", func() {
 					netconf := fmt.Sprintf(`
 				{
