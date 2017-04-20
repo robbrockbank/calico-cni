@@ -324,8 +324,8 @@ func cmdDel(args *skel.CmdArgs) error {
 	if orchestrator == "k8s" {
 		wep, err := k8s.CmdDelK8s(calicoClient, ep, args, logger)
 		if err != nil {
-			if _, ok := err.(k8s.ContainerIDMismatchErr); ok {
-				//CNI_ContainerID does not match WorkloadEndpoint ActiveInstanceID so ignoring the DELETE cmd.
+			if err == k8s.ContainerIDMismatchErr {
+				// CNI_ContainerID does not match WorkloadEndpoint ActiveInstanceID so ignoring the DELETE cmd.
 				// This gets logged in k8s.CmdDelK8s so - no-op
 			} else {
 				return err
