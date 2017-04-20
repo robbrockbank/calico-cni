@@ -29,7 +29,7 @@ import (
 	"github.com/projectcalico/cni-plugin/utils"
 	"github.com/projectcalico/libcalico-go/lib/api"
 	k8sbackend "github.com/projectcalico/libcalico-go/lib/backend/k8s"
-	"github.com/projectcalico/libcalico-go/lib/errors"
+	cerrors "github.com/projectcalico/libcalico-go/lib/errors"
 	cnet "github.com/projectcalico/libcalico-go/lib/net"
 
 	"encoding/json"
@@ -297,11 +297,15 @@ func CmdAddK8s(args *skel.CmdArgs, conf utils.NetConf, nodename string, calicoCl
 	return result, nil
 }
 
-func CmdDelK8s(calicoClient *client.Client, args *skelCmdArgs, logger *log.Entry) (*api.WorkloadEndpointMetadata, error) {
+func CmdDelK8s(calicoClient *client.Client, ep api.WorkloadEndpointMetadata, args *skel.CmdArgs, logger *log.Entry) (*api.WorkloadEndpointMetadata, error) {
+
+	// The following logic only applies to kubernetes since it sends multiple DELs for the same endpoint.
+	// We store CNI_CONTAINERID as ActiveInstanceID in WEP Metadata for k8s,
+	// so we need to make sure we check if ContainerID and ActiveInstanceID are the same before deleting the pod.
+
 	wep, err := calicoClient.WorkloadEndpoints().Get(ep)
 	if err != nil {
-		if _, ok := err.(errors.ErrorResourceDoesNotExist); ok {
-
+		if _, ok := err.(cerrors.ErrorResourceDoesNotExist); ok {
 			// We can talk to the datastore but WEP doesn't exist in there,
 			// but we still want to go ahead with the clean up. So, log a warning and clean up.
 			logger.WithField("WorkloadEndpoint", ep).Warning("WorkloadEndpoint does not exist in the datastore, moving forward with the clean up")
@@ -318,11 +322,12 @@ func CmdDelK8s(calicoClient *client.Client, args *skelCmdArgs, logger *log.Entry
 		// Check if ActiveInstanceID is populated (it will be an empty string "" if it was populated
 		// before this field was added to the API), and if it is there then compare it with ContainerID
 		// passed by the orchestrator to make sure they are the same, return without deleting if they aren't.
-		if endpoint.ActiveInstanceID != "" && args.ContainerID != endpoint.ActiveInstanceID {
+		if wep.Metadata.ActiveInstanceID != "" && args.ContainerID != wep.Metadata.ActiveInstanceID {
 			logger.WithField("WorkloadEndpoint", wep).Warning("CNI_ContainerID does not match WorkloadEndpoint ActiveInstanceID so ignoring the DELETE cmd.")
 			return nil, nil
 		}
-		return wep, nil
+
+		return wep.Metadata, nil
 	}
 
 	return nil, nil
