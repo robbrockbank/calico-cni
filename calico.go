@@ -357,6 +357,14 @@ func cmdDel(args *skel.CmdArgs) error {
 		}
 	}
 
+	// Store WEP Metadata in endpoint only if it is not nil to avoid nil pointer dereference
+	// in some of the following operations when WEP doesn't exist in the datastore.
+	if wep != nil {
+		endpoint = wep.Metadata
+	} else {
+		endpoint = ep
+	}
+
 	// Delete the WorkloadEndpoint object from the datastore.
 	if err = calicoClient.WorkloadEndpoints().Delete(endpoint); err != nil {
 		switch err := err.(type) {
