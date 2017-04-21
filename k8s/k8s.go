@@ -299,12 +299,13 @@ func CmdAddK8s(args *skel.CmdArgs, conf utils.NetConf, nodename string, calicoCl
 // ContainerIDMismatchErr is for when ContainerID does not match ActiveInstanceID during Deletion process.
 var ContainerIDMismatchErr = errors.New("ContainerID does not match ActiveInstanceID")
 
-// CmdDelK8s performs some special checks for the "DEL" operation on a kubernetes pod.
-// The following logic only applies to kubernetes since it sends multiple DELs for the same endpoint.
+// GetAndCompareWEP performs some special checks for the "DEL" operation on a kubernetes pod.
+// The following logic only applies to kubernetes since it sends multiple DELs for the same
+// endpoint. See: https://github.com/kubernetes/kubernetes/issues/44100
 // We store CNI_CONTAINERID as ActiveInstanceID in WEP Metadata for k8s,
-// so we need to make sure we check if ContainerID and ActiveInstanceID are the same before deleting the pod.
-func CmdDelK8s(c *calicoclient.Client, ep api.WorkloadEndpointMetadata, args *skel.CmdArgs, logger *log.Entry) (*api.WorkloadEndpointMetadata, error) {
-
+// so in this function we need to get the WEP and make sure we check if ContainerID and ActiveInstanceID
+// are the same before deleting the pod being deleted.
+func GetAndCompareWEP(c *calicoclient.Client, ep api.WorkloadEndpointMetadata, args *skel.CmdArgs, logger *log.Entry) (*api.WorkloadEndpointMetadata, error) {
 	wep, err := c.WorkloadEndpoints().Get(ep)
 	if err != nil {
 		if _, ok := err.(cerrors.ErrorResourceDoesNotExist); ok {
@@ -332,6 +333,7 @@ func CmdDelK8s(c *calicoclient.Client, ep api.WorkloadEndpointMetadata, args *sk
 		return &wep.Metadata, nil
 	}
 
+	// Return nil wep and nil error because if the resource doesn't exist then we still want to continue cleaning up.
 	return nil, nil
 }
 

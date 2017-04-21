@@ -311,18 +311,20 @@ func cmdDel(args *skel.CmdArgs) error {
 		return err
 	}
 
-	ep := api.WorkloadEndpointMetadata{
+	wepDefault := api.WorkloadEndpointMetadata{
 		Name:         args.IfName,
 		Node:         nodename,
 		Orchestrator: orchestrator,
 		Workload:     workload,
 	}
 
-	endpoint := &ep
+	// Assigning the default WEP value, since this is what will
+	// be used if we can't get WEP from datastore (which is a special case for k8s)
+	endpoint := &wepDefault
 
 	// Handle k8s specific bits of handling the DEL.
 	if orchestrator == "k8s" {
-		wep, err := k8s.CmdDelK8s(calicoClient, ep, args, logger)
+		wepFromDatastore, err := k8s.GetAndCompareWEP(calicoClient, wepDefault, args, logger)
 		if err != nil {
 			if err == k8s.ContainerIDMismatchErr {
 				// CNI_ContainerID does not match WorkloadEndpoint ActiveInstanceID so ignoring the DELETE cmd.
@@ -331,12 +333,17 @@ func cmdDel(args *skel.CmdArgs) error {
 			return err
 		}
 
-		if wep != nil {
-			endpoint = wep
+		// If we got a non-nil WEP from datastore then assign it to endpoint,
+		// so we can perform a safe Compare-and-Delete.
+		if wepFromDatastore != nil {
+			endpoint = wepFromDatastore
 		}
 	}
 
 	// Delete the WorkloadEndpoint object from the datastore.
+	// In case of k8s, where we are deleting the WEP we got from the Datastore,
+	// this Delete is a Compare-and-Delete, so if *any* field in the WEP changed from
+	// the time we get WEP until here then the Delete operation will fail.
 	if err = calicoClient.WorkloadEndpoints().Delete(*endpoint); err != nil {
 		switch err := err.(type) {
 		case errors.ErrorResourceDoesNotExist:
