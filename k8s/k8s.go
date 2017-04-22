@@ -318,10 +318,7 @@ func GetAndCompareWEP(c *calicoclient.Client, ep api.WorkloadEndpointMetadata, a
 			// from false DEL, we return the error without deleting/cleaning up.
 			return nil, err
 		}
-	}
-
-	// Only compare ContainerID with ActiveInstanceID if we got WEP from the datastore.
-	if wep != nil {
+	} else if wep != nil { // Only compare ContainerID with ActiveInstanceID if we got WEP from the datastore.
 		// Check if ActiveInstanceID is populated (it will be an empty string "" if it was populated
 		// before this field was added to the API), and if it is there then compare it with ContainerID
 		// passed by the orchestrator to make sure they are the same, return without deleting if they aren't.
