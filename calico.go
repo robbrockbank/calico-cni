@@ -311,52 +311,23 @@ func cmdDel(args *skel.CmdArgs) error {
 		return err
 	}
 
-	wepDefault := api.WorkloadEndpointMetadata{
+	wep := api.WorkloadEndpointMetadata{
 		Name:         args.IfName,
 		Node:         nodename,
 		Orchestrator: orchestrator,
 		Workload:     workload,
 	}
 
-	// Assigning the default WEP value, since this is what will
-	// be used if we can't get WEP from datastore (which is a special case for k8s)
-	endpoint := &wepDefault
-
-	// Handle k8s specific bits of handling the DEL.
+	// Handle The deletion of the Workload Endpoint.  For k8s we use special case
+	// deletion processing.
 	if orchestrator == "k8s" {
-		wepFromDatastore, err := k8s.GetAndCompareWEP(calicoClient, wepDefault, args, logger)
-		if err != nil {
-			if err == k8s.ContainerIDMismatchErr {
-				// CNI_ContainerID does not match WorkloadEndpoint ActiveInstanceID so ignoring the DELETE cmd.
-				return nil
-			}
-			return err
-		}
-
-		// If we got a non-nil WEP from datastore then assign it to endpoint,
-		// so we can perform a safe Compare-and-Delete.
-		if wepFromDatastore != nil {
-			endpoint = wepFromDatastore
-		}
+		err = k8s.CmdDelK8s(calicoClient, wep, args, logger)
+	} else {
+		err = calicoClient.WorkloadEndpoints().Delete(wep)
 	}
-
-	// Delete the WorkloadEndpoint object from the datastore.
-	// In case of k8s, where we are deleting the WEP we got from the Datastore,
-	// this Delete is a Compare-and-Delete, so if *any* field in the WEP changed from
-	// the time we get WEP until here then the Delete operation will fail.
-	if err = calicoClient.WorkloadEndpoints().Delete(*endpoint); err != nil {
-		switch err := err.(type) {
-		case errors.ErrorResourceDoesNotExist:
-			// Log and proceed with the clean up if WEP doesn't exist.
-			logger.WithField("endpoint", *endpoint).Info("Endpoint object does not exist, no need to clean up.")
-		case errors.ErrorResourceUpdateConflict:
-			// This case means the WEP object was modified between the time we did the Get and now,
-			// so it's not a safe Compare-and-Delete operation, so log and abbort with the error.
-			logger.WithField("endpoint", *endpoint).Warning("Error deleting endpoint: endpoint was modified before it could be deleted.")
-			return fmt.Errorf("Error deleting endpoint: endpoint was modified before it could be deleted: %v", err)
-		default:
-			return err
-		}
+	// If the WEP is already deleted that's fine, any other error should halt execution.
+	if _, ok := err.(errors.ErrorResourceDoesNotExist); !ok {
+		return err
 	}
 
 	// Release the IP address by calling the configured IPAM plugin.

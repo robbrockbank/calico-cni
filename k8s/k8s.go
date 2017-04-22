@@ -296,42 +296,53 @@ func CmdAddK8s(args *skel.CmdArgs, conf utils.NetConf, nodename string, calicoCl
 	return result, nil
 }
 
-// ContainerIDMismatchErr is for when ContainerID does not match ActiveInstanceID during Deletion process.
-var ContainerIDMismatchErr = errors.New("ContainerID does not match ActiveInstanceID")
-
-// GetAndCompareWEP performs some special checks for the "DEL" operation on a kubernetes pod.
+// CmdDelK8s performs the k8s-specific "DEL" operation for a kubernetes pod.
 // The following logic only applies to kubernetes since it sends multiple DELs for the same
-// endpoint. See: https://github.com/kubernetes/kubernetes/issues/44100
-// We store CNI_CONTAINERID as ActiveInstanceID in WEP Metadata for k8s,
-// so in this function we need to get the WEP and make sure we check if ContainerID and ActiveInstanceID
-// are the same before deleting the pod being deleted.
-func GetAndCompareWEP(c *calicoclient.Client, ep api.WorkloadEndpointMetadata, args *skel.CmdArgs, logger *log.Entry) (*api.WorkloadEndpointMetadata, error) {
-	wep, err := c.WorkloadEndpoints().Get(ep)
-	if err != nil {
-		if _, ok := err.(cerrors.ErrorResourceDoesNotExist); ok {
-			// We can talk to the datastore but WEP doesn't exist in there,
-			// but we still want to go ahead with the clean up. So, log a warning and clean up.
-			logger.WithField("WorkloadEndpoint", ep).Warning("WorkloadEndpoint does not exist in the datastore, moving forward with the clean up")
-		} else {
-			// Could not connect to datastore (connection refused, unauthorized, etc.)
-			// so we have no way of knowing/checking ActiveInstanceID. To protect the endpoint
-			// from false DEL, we return the error without deleting/cleaning up.
-			return nil, err
-		}
-	} else if wep != nil { // Only compare ContainerID with ActiveInstanceID if we got WEP from the datastore.
-		// Check if ActiveInstanceID is populated (it will be an empty string "" if it was populated
-		// before this field was added to the API), and if it is there then compare it with ContainerID
-		// passed by the orchestrator to make sure they are the same, return without deleting if they aren't.
-		if wep.Metadata.ActiveInstanceID != "" && args.ContainerID != wep.Metadata.ActiveInstanceID {
-			logger.WithField("WorkloadEndpoint", wep).Warning("CNI_ContainerID does not match WorkloadEndpoint ActiveInstanceID so ignoring the DELETE cmd.")
-			return nil, ContainerIDMismatchErr
+// endpoint (primarily because we don't use the container ID as an index of the workload endpoint).
+// 	See: https://github.com/kubernetes/kubernetes/issues/44100
+func CmdDelK8s(c *calicoclient.Client, metadata api.WorkloadEndpointMetadata, args *skel.CmdArgs, logger *log.Entry) error {
+	// In k8s CNI, we store CNI_CONTAINERID as the ActiveInstanceID in WEP Metadata.
+	// The delete processing should only delete the WorkloadEndpoint configuration if
+	// the ActiveInstanceID on the endpoint matches the CNI_CONTAINERID.  Since the
+	// ActiveInstanceID is not actually an index of the WorkloadEndpoint, we perform
+	// an atomic Compare and Delete by Get(ting) the current WorkloadEndpoint value,
+	// comparing the ActiveInstanceID against the ContainerID and, if they match,
+	// performing an atomic Delete by using the Metadata on the returned endpoint
+	// config (which contains revision information).  Since atomic deletes may validly
+	// result in update conflicts, we retry the processing a fixed number of times if
+	// we hit an update conflict.
+	logCxt := logger.WithField("WorkloadEndpoint", metadata)
+	for i := 0; i < 10; i++ {
+		if wep, err := c.WorkloadEndpoints().Get(metadata); err != nil {
+			// If we hit an error getting the endpoint, return the error - calling code can
+			// handle it.
+			logCxt.WithError(err).Info("Error getting endpoint")
+			return err
+		} else if wep.Metadata.ActiveInstanceID != "" && args.ContainerID != wep.Metadata.ActiveInstanceID {
+			// Workload endpoint contains and active instance ID and it is different from
+			// this container ID (so this endpoint does not correspond to this container).
+			// Return without deleting the WorkloadEndpoint and no error.
+			logCxt.Warning("CNI_ContainerID does not match WorkloadEndpoint ActiveInstanceID - not deleting endpoint")
+			return nil
+		} else if err := c.WorkloadEndpoints().Delete(wep.Metadata); err != nil {
+			// If we hit an error deleting the endpoint, return the error - calling code can
+			// handle it, with one exception:  If we hit an update conflict then we should
+			// retry - so continue the loop (we'll retry a set number of times).
+			if _, ok := err.(cerrors.ErrorResourceUpdateConflict); ok {
+				logCxt.Info("Update conflict deleting endpoint - retrying")
+				continue
+			}
+
+			logCxt.WithError(err).Info("Error deleting endpoint")
+			return err
 		}
 
-		return &wep.Metadata, nil
+		// We have successfully deleted the Workload endpoint, so exit.
+		return nil
 	}
 
-	// Return nil wep and nil error because if the resource doesn't exist then we still want to continue cleaning up.
-	return nil, nil
+	logCxt.Warning("Maximum retries hit trying to delete endpoint")
+	return errors.New("Unable to delete endpoint configuration due to conflicting updates")
 }
 
 // ipAddrsResult parses the ipAddrs annotation and calls the configured IPAM plugin for
